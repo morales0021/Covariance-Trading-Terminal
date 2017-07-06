@@ -6,6 +6,8 @@ Created on Tue Jun 27 22:18:33 2017
 @author: jmorales
 """
 import numpy as np
+from lib.Data.Data_Quant import Price_Storage, Price_Cleaned, Data_Derivatives
+from lib.Commission.Commissions import Simulation_Commission
 
 class Round_Allocations(object):
     
@@ -94,7 +96,7 @@ class Covariance_Strategy(object):
         self.CC_returns = Der_prices.CC_returns
         self.Real_returns = Der_prices.Real_returns
         
-        self.tot_val = len(Daily_alphas)
+        self.tot_val = len(self.Daily_alphas)
         
         #Generate allocator strategy object
         self.Allocator = Allocator_Cov(self.symbols)
