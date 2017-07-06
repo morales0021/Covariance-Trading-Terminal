@@ -8,6 +8,7 @@ Created on Tue Jun 27 22:18:33 2017
 import numpy as np
 from lib.Data.Data_Quant import Price_Storage, Price_Cleaned, Data_Derivatives
 from lib.Commission.Commissions import Simulation_Commission
+from lib.Strategy.Covariance_Dec import qrm_cov_pc
 
 class Round_Allocations(object):
     
