@@ -83,7 +83,7 @@ class Allocator_Cov(object):
 
 class Covariance_Strategy(object):
     
-    def __init__(self, data_open, data_close, Money, days):
+    def __init__(self, data_open, data_close, Money, days, Daily_alphas = 0):
         
         self.data_open = data_open
         self.data_close = data_close
@@ -93,7 +93,12 @@ class Covariance_Strategy(object):
         
         #Obtain data derivatives
         Der_prices = Data_Derivatives(data_open, data_close)
-        self.Daily_alphas = Der_prices.Daily_alphas
+
+        if Daily_alphas == 0:
+            self.Daily_alphas = Der_prices.Daily_alphas
+        else:
+            self.Daily_alphas = Daily_alphas
+            
         self.CC_returns = Der_prices.CC_returns
         self.Real_returns = Der_prices.Real_returns
         
