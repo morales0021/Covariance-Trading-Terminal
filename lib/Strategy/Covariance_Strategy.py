@@ -94,7 +94,7 @@ class Covariance_Strategy(object):
         #Obtain data derivatives
         Der_prices = Data_Derivatives(data_open, data_close)
 
-        if Daily_alphas == 0:
+        if type(Daily_alphas) == int:
             self.Daily_alphas = Der_prices.Daily_alphas
         else:
             self.Daily_alphas = Daily_alphas
