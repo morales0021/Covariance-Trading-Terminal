@@ -9,7 +9,7 @@ import pandas_datareader.data as web
 import pandas as pd
 import numpy as np
 import multiprocessing
-
+import urllib
 
 class Price_Storage(object):
     
@@ -90,8 +90,101 @@ class Price_Storage(object):
             
         return df_label
 
+class Price_Storage_AV(object):
+    
+    def __init__(self, symbols, jobs = -1):
+        self.symbols = symbols
+        self.dict_stock_data = {}
+        self.index = None
+        
+        if jobs == -1:
+            self.load_prices_parallel()
+        else:
+            self.load_prices()
+        
+    def __Reader_Web__(self, symbol,out_p):
+        aux_dict_stock_data = {}
+        df = self.wrapper_web_DataReader(symbol)
+        aux_dict_stock_data[symbol] = df
+        out_p.put(aux_dict_stock_data)
+        
+        print "Symbol: ", symbol," succesfully loaded"
+    
+    def wrapper_web_DataReader(self, symbol):
+    
+        result = None
+        
+        while result is None:
+            try:
+                stock_url='https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol='\
+                    +symbol+'&interval=1min&outputsize=full&apikey=INORFPTY2SSY2SA1&datatype=csv'
+                urllib.urlretrieve (stock_url, symbol+".csv")
+                df = pd.read_csv(symbol+".csv", index_col = 'timestamp')
+                
+                result = True
+            except:
+                print "Exception was raised for ", symbol
+                pass
+        
+        return df
+        
+    def load_prices(self):
+        
+        '''Load prices data in linear mode '''
+        
+        for symbol in self.symbols:
+            df_temp = self.wrapper_web_DataReader(symbol)
+            self.dict_stock_data[symbol] = df_temp
+            print "Symbol: ", symbol," succesfully loaded"
             
+        print "Symbols succesfully loaded"
+    
+    def load_prices_parallel(self):
+        
+        '''Load price data in a parallel fashion mode'''
+        
+        jobs = []
+        
+        out_p = multiprocessing.Queue()
+        
+        for symbol in self.symbols:
+            job = multiprocessing.Process(target = self.__Reader_Web__, args=(symbol,out_p))
+            jobs.append(job)
+        
+        for job in jobs:
+            job.start()
+        
+        for job in jobs:
+            aux = out_p.get()
+            symbol = aux.keys()[0]
+            self.dict_stock_data[symbol]= aux[symbol]
+            
+        for job in jobs:
+            job.join()
+        
+        print "Symbols succesfully loaded"
+        
+    def get_prices_by_label(self, price_label):
+        
+        '''Give a pandas dataframe with the label prices'''
+        
+        self.index = self.dict_stock_data.values()[0].index
+        
+        df_label = pd.DataFrame(index=self.index)
+            
+        for symbol in self.symbols:
 
+            tmp_price = self.dict_stock_data[symbol][price_label]
+            df_label = df_label.join(tmp_price)
+            df_label = df_label.rename(columns={price_label: symbol})
+        
+            if df_label.empty:
+                print symbol
+                pdb.set_trace()
+        df_label = df_label.dropna()
+            
+        return df_label           
+            
 
 class Price_Cleaned:
     
