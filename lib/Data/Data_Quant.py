@@ -186,6 +186,89 @@ class Price_Storage_AV(object):
         return df_label           
             
 
+class Price_Storage_IEX(object):
+    
+    def __init__(self, symbols, jobs = -1):
+        self.symbols = symbols
+        self.dict_stock_data = {}
+        self.index = None
+        
+        if jobs == -1:
+            self.load_prices_parallel()
+        else:
+            pass
+        
+    def __Reader_stock__(self, symbol, out_p):
+        aux_dict_stock_data = {}
+
+        stock_url = "https://api.iextrading.com/1.0/stock/"+symbol+"/quote"
+        response = urllib.urlopen(stock_url)
+        data = json.loads(response.read())
+        last_price = data['latestPrice']
+
+        s = data['latestUpdate'] #Miliseconds from january 1st of 1970
+        s = s / 1000.0  #Converting from miliseconds to seconds
+        timestamp = datetime.datetime.fromtimestamp(s, tz=pytz.timezone('US/Eastern'))
+
+        Info = {'datetime':timestamp, 'price': last_price}
+
+        unit_symbol= pd.DataFrame(Info, columns = ['price'], index = [timestamp])
+        #unit_symbol= unit_symbol.rename(columns={'price' : symbol})
+        unit_symbol.index.name = "Date"
+
+        aux_dict_stock_data[symbol] = unit_symbol
+        out_p.put(aux_dict_stock_data)
+        print "Symbol: ", symbol, " succesfully loaded"
+        
+        
+    def load_prices_parallel(self):
+        
+        '''Load price data in a parallel fashion mode'''
+        
+        jobs = []
+        
+        out_p = multiprocessing.Queue()
+        
+        for symbol in self.symbols:
+            job = multiprocessing.Process(target = self.__Reader_stock__, args=(symbol,out_p))
+            jobs.append(job)
+        
+        for job in jobs:
+            job.start()
+        
+        for job in jobs:
+            aux = out_p.get()
+            symbol = aux.keys()[0]
+            self.dict_stock_data[symbol]= aux[symbol]
+            
+        for job in jobs:
+            job.join()
+        
+        print "Symbols succesfully loaded"
+
+    def get_prices_by_label(self, price_label= 'price'):
+        
+        '''Give a pandas dataframe with the label prices'''
+        
+        self.index = self.dict_stock_data.values()[0].index
+        
+        df_label = pd.DataFrame(index=self.index)
+            
+        for symbol in self.symbols:
+
+            tmp_price = self.dict_stock_data[symbol][price_label]
+            tmp_price.index = self.index
+            df_label = df_label.join(tmp_price)
+            df_label = df_label.rename(columns={price_label: symbol})
+        
+            if df_label.empty:
+                print symbol
+                pdb.set_trace()
+        df_label = df_label.dropna()
+            
+        return df_label
+
+
 class Price_Cleaned:
     
     def __init__(self, Price_Data):
