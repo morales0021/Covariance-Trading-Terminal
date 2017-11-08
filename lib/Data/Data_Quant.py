@@ -4,12 +4,19 @@ General Quantitative Recherche Library 1
 
 Data loading objects tools
 """
+import datetime
+import time
 
 import pandas_datareader.data as web
 import pandas as pd
 import numpy as np
+
 import multiprocessing
+import pdb
+
+import json
 import urllib
+import pytz
 
 class Price_Storage(object):
     
@@ -209,6 +216,8 @@ class Price_Storage_IEX(object):
         s = data['latestUpdate'] #Miliseconds from january 1st of 1970
         s = s / 1000.0  #Converting from miliseconds to seconds
         timestamp = datetime.datetime.fromtimestamp(s, tz=pytz.timezone('US/Eastern'))
+        timestamp = timestamp.replace(tzinfo=None)
+	print 'timestamp changed'
 
         Info = {'datetime':timestamp, 'price': last_price}
 
